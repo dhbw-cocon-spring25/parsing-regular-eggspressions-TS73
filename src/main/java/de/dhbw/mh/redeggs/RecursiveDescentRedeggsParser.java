@@ -18,7 +18,7 @@ public class RecursiveDescentRedeggsParser {
 	public final static char END_CHAR = 0;
 	public final static char EPS = 'ε';
 	public final static char EMPTY_SET = '∅';
-	public final static String NON_LITERALS = "|*()[]^-" + END_CHAR;
+	public final static String NON_LITERALS = "|*()[]^" + END_CHAR;
 
 	/**
 	 * Constructs a new {@code RecursiveDescentRedeggsParser} with the specified
