@@ -118,9 +118,8 @@ public class RecursiveDescentRedeggsParser {
 		if (c == '|') {
 			match('|');
 			RegularEggspression concat_res = concat();
-			RegularEggspression union_res = union(concat_res);
-
-			return new RegularEggspression.Alternation(left, union_res);
+			RegularEggspression union_res = union(new RegularEggspression.Alternation(left, concat_res));
+			return union_res;
 		} else if (c == END_CHAR || c == ')') {
 			return left;
 		}
@@ -144,8 +143,8 @@ public class RecursiveDescentRedeggsParser {
 		char c = peek();
 		if (isLiteral(c) || c == '(' || c == '[') {
 			RegularEggspression kleene_res = kleene();
-			RegularEggspression suffix_res = suffix(kleene_res);
-			return new RegularEggspression.Concatenation(left, suffix_res);
+			RegularEggspression suffix_res = suffix(new RegularEggspression.Concatenation(left, kleene_res));
+			return suffix_res;
 		} else if (c == '|' || c == ')' || c == END_CHAR) {
 			return left;
 		}
@@ -269,7 +268,7 @@ public class RecursiveDescentRedeggsParser {
 			}
 
 			return builder;
-		} else if (isLiteral(c) || c == ']') {
+		} else {
 			if (inverted) {
 				builder.exclude(single(first));
 			} else {
@@ -277,7 +276,5 @@ public class RecursiveDescentRedeggsParser {
 			}
 			return builder;
 		}
-
-		throw new RedeggsParseException("Expect a literal, '-' or ']' but found '" + c + "'", 0);
 	}
 }
