@@ -48,3 +48,4 @@ nbproject/private/
 # Maven
 log/
 target/
+.vscode/

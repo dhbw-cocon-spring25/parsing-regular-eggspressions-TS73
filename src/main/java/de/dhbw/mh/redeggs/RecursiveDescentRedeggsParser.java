@@ -18,7 +18,6 @@ public class RecursiveDescentRedeggsParser {
 	public final static char END_CHAR = 0;
 	public final static char EPS = 'ε';
 	public final static char EMPTY_SET = '∅';
-	public final static String NON_LITERALS = "|*()[]^" + END_CHAR;
 
 	/**
 	 * Constructs a new {@code RecursiveDescentRedeggsParser} with the specified
@@ -63,17 +62,6 @@ public class RecursiveDescentRedeggsParser {
 		}
 	}
 
-	private static boolean isLiteral(char c) {
-		return !NON_LITERALS.contains(String.valueOf(c));
-	}
-
-	// private void excpetion(char symbol) throws RedeggsParseException {
-	// if (symbol == END_CHAR) {
-	// throw new RedeggsParseException("", pos);
-	// }
-	// throw new RedeggsParseException("", pos);
-	// }
-
 	/**
 	 * Parses a regular expression string into an abstract syntax tree (AST).
 	 * 
@@ -102,15 +90,11 @@ public class RecursiveDescentRedeggsParser {
 
 	public RegularEggspression regex() throws RedeggsParseException {
 		System.out.println("Parsing regex: " + input);
-		// char c = peek();
-		// if (isLiteral(c) || c == '(' || c == '[') {
+
 		RegularEggspression left = concat();
 		RegularEggspression res = union(left);
 
 		return res;
-		// }
-		// throw new RedeggsParseException("Expected a literal or '(' or '[' but found
-		// '" + c + "'", 0);
 	}
 
 	public RegularEggspression union(RegularEggspression left) throws RedeggsParseException {
@@ -124,20 +108,14 @@ public class RecursiveDescentRedeggsParser {
 		} else if (c == END_CHAR || c == ')') {
 			return left;
 		}
-		throw new RedeggsParseException("Expected '|', ')' or '" + END_CHAR + "' but found '" + c + "'", 0);
+		throw new RedeggsParseException("Expected '|', ')' or end of input but found '" + c + "'", 0);
 	}
 
 	public RegularEggspression concat() throws RedeggsParseException {
 		System.out.println("Parsing concat: " + input);
-		char c = peek();
-		// if (isLiteral(c) || c == '(' || c == '[') {
 		RegularEggspression left = kleene();
 		RegularEggspression res = suffix(left);
 		return res;
-		// }
-
-		// throw new RedeggsParseException("Expected a literal, '(' or '[' but found '"
-		// + c + "'", 0);
 	}
 
 	public RegularEggspression suffix(RegularEggspression left) throws RedeggsParseException {
@@ -146,27 +124,15 @@ public class RecursiveDescentRedeggsParser {
 		if (c == '|' || c == ')' || c == END_CHAR) {
 			return left;
 		}
-		// if (isLiteral(c) || c == '(' || c == '[') {
 		RegularEggspression kleene_res = kleene();
 		RegularEggspression suffix_res = suffix(new RegularEggspression.Concatenation(left, kleene_res));
 		return suffix_res;
-		// }
-
-		// throw new RedeggsParseException(
-		// "Expected a literal, '(', '[', '|', '" + END_CHAR + "' or ')' but found '" +
-		// c + "'", 0);
 	}
 
 	public RegularEggspression kleene() throws RedeggsParseException {
 		System.out.println("Parsing kleene: " + input);
-		// char c = peek();
-		// if (isLiteral(c) || c == '(' || c == '[') {
 		RegularEggspression base_res = base();
 		return star(base_res);
-		// }
-
-		// throw new RedeggsParseException("Expected a literal, '(' or '[' but found '"
-		// + c + "'", 0);
 	}
 
 	public RegularEggspression star(RegularEggspression base_res) throws RedeggsParseException {
@@ -176,53 +142,42 @@ public class RecursiveDescentRedeggsParser {
 			match('*');
 			return new RegularEggspression.Star(base_res);
 		}
-		// else if (isLiteral(c) || c == '(' || c == '[' || c == '|' || c == ')' || c ==
-		// END_CHAR) {
 		return base_res;
-		// }
-
-		// throw new RedeggsParseException(
-		// "Expected a '*', literal, '(', '[', '|', ')' or '" + END_CHAR + "' but found
-		// '" + c + "'", 0);
 	}
 
 	public RegularEggspression base() throws RedeggsParseException {
 		System.out.println("Parsing base: " + input);
-		char c = peek();
+		char c = consume();
 		if (c == '(') {
-			match('(');
+			// match('(');
 			RegularEggspression res = regex();
 
 			match(')');
 			return res;
 		} else if (c == '[') {
-			match('[');
+			// match('[');
 			boolean inverted = carrot();
 
 			SymbolFactory.Builder builder = symbolFactory.newSymbol();
-			builder = inhalt(builder, inverted);
+			builder = content(builder, inverted);
 			builder = range_nt(builder, inverted);
 
 			match(']');
 
 			RegularEggspression res = new RegularEggspression.Literal(builder.andNothingElse());
 			return res;
-		}
-
-		// if (isLiteral(c)) {
-		char symbol = consume();
-
-		if (symbol == EMPTY_SET) {
+		} else if (c == EMPTY_SET) {
 			return new RegularEggspression.EmptySet();
-		} else if (symbol == EPS) {
+		} else if (c == EPS) {
 			return new RegularEggspression.EmptyWord();
+		} else if (c == END_CHAR) {
+			throw new RedeggsParseException("Unexpected end of input.", 0);
+		} else if (c == ']') {
+			throw new RedeggsParseException("Unexpected symbol ']' at position " + pos + ".", 0);
 		}
 
-		VirtualSymbol literal = symbolFactory.newSymbol().include(single(symbol)).andNothingElse();
+		VirtualSymbol literal = symbolFactory.newSymbol().include(single(c)).andNothingElse();
 		return new RegularEggspression.Literal(literal);
-		// } else
-		// throw new RedeggsParseException("Expect a literal, '(' or '[' but found '" +
-		// c + "'", pos);
 	}
 
 	public boolean carrot() throws RedeggsParseException {
@@ -232,9 +187,6 @@ public class RecursiveDescentRedeggsParser {
 			return true;
 		}
 		return false;
-
-		// throw new RedeggsParseException("Expect a literal or '^' but found '" + c +
-		// "'", 0);
 	}
 
 	public SymbolFactory.Builder range_nt(SymbolFactory.Builder builder, boolean inverted)
@@ -245,21 +197,14 @@ public class RecursiveDescentRedeggsParser {
 			return builder;
 		}
 
-		// if (isLiteral(c)) {
-		builder = inhalt(builder, inverted);
+		builder = content(builder, inverted);
 		builder = range_nt(builder, inverted);
 		return builder;
-		// } else
-		// throw new RedeggsParseException("Expect a literal or ']'", 0);
 	}
 
-	public SymbolFactory.Builder inhalt(SymbolFactory.Builder builder, boolean inverted) throws RedeggsParseException {
-		// char c = peek();
-
+	public SymbolFactory.Builder content(SymbolFactory.Builder builder, boolean inverted) throws RedeggsParseException {
 		char first = consume();
 		return remain(builder, inverted, first);
-
-		// throw new RedeggsParseException("Expect a literal but found '" + c + "'", 0);
 	}
 
 	public SymbolFactory.Builder remain(SymbolFactory.Builder builder, boolean inverted, char first)
